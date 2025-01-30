@@ -10,6 +10,7 @@ A Flutter package that removes the background from images using an ONNX model. T
 - Works entirely offline, ensuring privacy and reliability.  
 - Lightweight and optimized for efficient performance.  
 - Simple and seamless integration with Flutter projects. 
+- Add a custom background color to images.
 
 ---
 
@@ -31,7 +32,7 @@ dependencies:
 ##  Usage
 # Initialization
 Before using the `removeBg` method, you must initialize the ONNX environment:
-    ```
+    ```dart
     import 'package:image_background_remover/image_background_remover.dart';
 
     @override
@@ -40,11 +41,10 @@ Before using the `removeBg` method, you must initialize the ONNX environment:
         BackgroundRemover.instance.initializeOrt();
     }
 
-    ```
 
 # Remove Background
 To remove the background from an image:
-```
+```dart
 import 'dart:typed_data';
 import 'package:image_background_remover/image_background_remover.dart';
 
@@ -55,14 +55,30 @@ ui.Image resultImage = await BackgroundRemover.instance.removeBg(imageBytes);
 
 ```
 
+## 🆕 New Feature: Add Background Color
+
+You can now add a custom background color to images after removing the background.
+
+### Usage:
+
+```dart
+Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
+  image: originalImageBytes,
+  bgColor: Colors.white, // Set your desired background color
+);
+
+```
+
 ## API
 
 ### Methods
 
-| Method                  | Description                                                                 | Parameters                      | Returns                           |
-|-------------------------|-----------------------------------------------------------------------------|---------------------------------|-----------------------------------|
-| `initializeOrt()`       | Initializes the ONNX runtime environment. Call this method once before using `removeBg`. | None                            | `Future<void>`                   |
+| Method                          | Description                                                                 | Parameters                                      | Returns                           |
+|---------------------------------|-----------------------------------------------------------------------------|------------------------------------------------|-----------------------------------|
+| `initializeOrt()`               | Initializes the ONNX runtime environment. Call this method once before using `removeBg`. | None                                           | `Future<void>`                   |
 | `removeBg(Uint8List imageBytes)` | Removes the background from an image.                                     | `imageBytes` - The image in byte array format. | `Future<ui.Image>` - The processed image with the background removed. |
+| `addBackground({required Uint8List image, required Color bgColor})` | Adds a background color to the given image. | `image` - The original image in byte array format. <br> `bgColor` - The background color to be applied. | `Future<Uint8List>` - The modified image with the background color applied. |
+
 
 
 ## ⚠️ Warning

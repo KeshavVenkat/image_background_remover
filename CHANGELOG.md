@@ -1,3 +1,8 @@
+## 0.0.6
+
+### Feat
+- Added `addBackground` function to change background of color
+
 ## 0.0.5
 
 ### Fix

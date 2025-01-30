@@ -96,7 +96,31 @@ class _MyHomePageState extends State<MyHomePage> {
                                         return const CircularProgressIndicator();
                                       } else if (snapshot.connectionState ==
                                           ConnectionState.done) {
-                                        return Image.memory(snapshot.data!);
+                                        return Column(
+                                          children: [
+                                            Image.memory(snapshot.data!),
+                                            FutureBuilder(
+                                                future: BackgroundRemover
+                                                    .instance
+                                                    .addBackground(
+                                                        image: snapshot.data!,
+                                                        bgColor: Colors.orange),
+                                                builder: (context, snapshot) {
+                                                  if (snapshot
+                                                          .connectionState ==
+                                                      ConnectionState.waiting) {
+                                                    return const CircularProgressIndicator();
+                                                  } else if (snapshot
+                                                          .connectionState ==
+                                                      ConnectionState.done) {
+                                                    return Image.memory(
+                                                        snapshot.data!);
+                                                  } else {
+                                                    return const Text('Error');
+                                                  }
+                                                }),
+                                          ],
+                                        );
                                       } else {
                                         return const Text('Error');
                                       }
