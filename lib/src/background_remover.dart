@@ -48,6 +48,7 @@ class BackgroundRemover {
 
       /// Create the ONNX session.
       _session = OrtSession.fromBuffer(bytes, sessionOptions);
+      sessionOptions.release();
       if (kDebugMode) {
         log('ONNX session created successfully.', name: "BackgroundRemover");
       }
@@ -227,5 +228,10 @@ class BackgroundRemover {
     final completer = Completer<Uint8List>();
     completer.complete(jpegBytes.buffer.asUint8List());
     return completer.future;
+  }
+
+  dispose() {
+    _session?.release();
+    _session = null;
   }
 }
