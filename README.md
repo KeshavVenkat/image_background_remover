@@ -11,6 +11,7 @@ A Flutter package that removes the background from images using an ONNX model. T
 - Lightweight and optimized for efficient performance.  
 - Simple and seamless integration with Flutter projects. 
 - Add a custom background color to images.
+- Customizable threshold value for better edge detection.
 
 ---
 
@@ -52,7 +53,6 @@ Uint8List imageBytes = /* Load your image bytes */;
 ui.Image resultImage = await BackgroundRemover.instance.removeBg(imageBytes);
 /* resultImage will contain image with transparent background*/
 
-
 ```
 
 ## 🆕 New Feature: Add Background Color
@@ -76,14 +76,13 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
 | Method                          | Description                                                                 | Parameters                                      | Returns                           |
 |---------------------------------|-----------------------------------------------------------------------------|------------------------------------------------|-----------------------------------|
 | `initializeOrt()`               | Initializes the ONNX runtime environment. Call this method once before using `removeBg`. | None                                           | `Future<void>`                   |
-| `removeBg(Uint8List imageBytes)` | Removes the background from an image.                                     | `imageBytes` - The image in byte array format. | `Future<ui.Image>` - The processed image with the background removed. |
+| `removeBg(Uint8List imageBytes, { double threshold = 0.5, bool smoothMask = true, bool enhanceEdges = true })` | Removes the background from an image.                                     | `imageBytes` - The image in byte array format. <br> `threshold` - The confidence threshold for background removal (default: `0.5`). A higher value removes more background, while a lower value retains more foreground. <br> `smoothMask` - Whether to apply bilinear interpolation for smoother edges (default: `true`). <br> `enhanceEdges` - Whether to refine mask boundaries using gradient-based edge enhancement (default: `true`). | `Future<ui.Image>` - The processed image with the background removed. |
 | `addBackground({required Uint8List image, required Color bgColor})` | Adds a background color to the given image. | `image` - The original image in byte array format. <br> `bgColor` - The background color to be applied. | `Future<Uint8List>` - The modified image with the background color applied. |
-
 
 
 ## ⚠️ Warning
 
-This package uses an offline model to process images, which is bundled with the application. **This may increase the size of your app** depending on the size of the model file. 
+This package uses an offline model to process images, which is bundled with the application. **This may increase the size of your app**. 
 
 ### Recommendations:
 - Ensure your app has sufficient storage capacity for the increased size.
