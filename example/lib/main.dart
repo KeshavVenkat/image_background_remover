@@ -41,6 +41,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    BackgroundRemover.instance.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -66,69 +72,74 @@ class _MyHomePageState extends State<MyHomePage> {
                         Text('No image selected.'),
                       ],
                     )
-                  : Column(
-                      children: [
-                        Image.file(image),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            outImg.value = await BackgroundRemover.instance
-                                .removeBg(image.readAsBytesSync());
-                          },
-                          child: const Text('Remove Background'),
-                        ),
-                        ValueListenableBuilder(
-                          valueListenable: outImg,
-                          builder: (context, img, _) {
-                            return img == null
-                                ? const SizedBox()
-                                : FutureBuilder(
-                                    future: img
-                                        .toByteData(
-                                            format: ui.ImageByteFormat.png)
-                                        .then((value) =>
-                                            value!.buffer.asUint8List()),
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return const CircularProgressIndicator();
-                                      } else if (snapshot.connectionState ==
-                                          ConnectionState.done) {
-                                        return Column(
-                                          children: [
-                                            Image.memory(snapshot.data!),
-                                            FutureBuilder(
-                                                future: BackgroundRemover
-                                                    .instance
-                                                    .addBackground(
-                                                        image: snapshot.data!,
-                                                        bgColor: Colors.orange),
-                                                builder: (context, snapshot) {
-                                                  if (snapshot
-                                                          .connectionState ==
-                                                      ConnectionState.waiting) {
-                                                    return const CircularProgressIndicator();
-                                                  } else if (snapshot
-                                                          .connectionState ==
-                                                      ConnectionState.done) {
-                                                    return Image.memory(
-                                                        snapshot.data!);
-                                                  } else {
-                                                    return const Text('Error');
-                                                  }
-                                                }),
-                                          ],
-                                        );
-                                      } else {
-                                        return const Text('Error');
-                                      }
-                                    },
-                                  );
-                          },
-                        ),
-                      ],
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Image.file(image),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              outImg.value = await BackgroundRemover.instance
+                                  .removeBg(image.readAsBytesSync());
+                            },
+                            child: const Text('Remove Background'),
+                          ),
+                          ValueListenableBuilder(
+                            valueListenable: outImg,
+                            builder: (context, img, _) {
+                              return img == null
+                                  ? const SizedBox()
+                                  : FutureBuilder(
+                                      future: img
+                                          .toByteData(
+                                              format: ui.ImageByteFormat.png)
+                                          .then((value) =>
+                                              value!.buffer.asUint8List()),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const CircularProgressIndicator();
+                                        } else if (snapshot.connectionState ==
+                                            ConnectionState.done) {
+                                          return Column(
+                                            children: [
+                                              Image.memory(snapshot.data!),
+                                              FutureBuilder(
+                                                  future: BackgroundRemover
+                                                      .instance
+                                                      .addBackground(
+                                                          image: snapshot.data!,
+                                                          bgColor:
+                                                              Colors.orange),
+                                                  builder: (context, snapshot) {
+                                                    if (snapshot
+                                                            .connectionState ==
+                                                        ConnectionState
+                                                            .waiting) {
+                                                      return const CircularProgressIndicator();
+                                                    } else if (snapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done) {
+                                                      return Image.memory(
+                                                          snapshot.data!);
+                                                    } else {
+                                                      return const Text(
+                                                          'Error');
+                                                    }
+                                                  }),
+                                            ],
+                                          );
+                                        } else {
+                                          return const Text('Error');
+                                        }
+                                      },
+                                    );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
             ),
           );
