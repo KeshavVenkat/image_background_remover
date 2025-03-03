@@ -84,11 +84,11 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
 
 This package uses an offline model to process images, which is bundled with the application. **This may increase the size of your app**. 
 
-### Recommendations:
-- Ensure your app has sufficient storage capacity for the increased size.
-- Regularly optimize your app's assets and resources to minimize its footprint.
-
-
 
 ## 🔗 Contributing
 Contributions are welcome! If you encounter any issues or have suggestions for improvements, feel free to create an issue or submit a pull request.
+
+## ☕ Support This Project
+If you find this package helpful and want to support its development, you can buy me a coffee! Your support helps maintain and improve this package. 😊
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-orange?style=flat-square&logo=buy-me-a-coffee)](https://www.buymeacoffee.com/neteshpaudel)
