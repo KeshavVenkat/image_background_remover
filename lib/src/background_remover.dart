@@ -447,63 +447,63 @@ class BackgroundRemover {
     return completer.future;
   }
 
-  /// Multi-scale background removal for improved results
-  /// This processes the image at multiple scales and combines the results
-  Future<ui.Image> removeBgMultiScale(
-    Uint8List imageBytes, {
-    List<int> scales = const [256, 320, 384],
-    double threshold = 0.5,
-    bool smoothMask = true,
-  }) async {
-    if (_session == null) {
-      throw Exception("ONNX session not initialized");
-    }
+  // /// Multi-scale background removal for improved results
+  // /// This processes the image at multiple scales and combines the results
+  // Future<ui.Image> removeBgMultiScale(
+  //   Uint8List imageBytes, {
+  //   List<int> scales = const [256, 320, 384],
+  //   double threshold = 0.5,
+  //   bool smoothMask = true,
+  // }) async {
+  //   if (_session == null) {
+  //     throw Exception("ONNX session not initialized");
+  //   }
 
-    final originalImage = await decodeImageFromList(imageBytes);
-    final height = originalImage.height;
-    final width = originalImage.width;
+  //   final originalImage = await decodeImageFromList(imageBytes);
+  //   final height = originalImage.height;
+  //   final width = originalImage.width;
 
-    // Create a combined mask initialized with zeros
-    List<List<double>> combinedMask = List.generate(
-      height,
-      (_) => List.filled(width, 0.0),
-    );
+  //   // Create a combined mask initialized with zeros
+  //   List<List<double>> combinedMask = List.generate(
+  //     height,
+  //     (_) => List.filled(width, 0.0),
+  //   );
 
-    // Process each scale
-    for (final scale in scales) {
-      // Process the image at this scale
-      final resizedImage = await _resizeImage(originalImage, scale, scale);
-      final rgbFloats = await _imageToFloatTensor(resizedImage);
-      final inputTensor = OrtValueTensor.createTensorWithDataList(
-        Float32List.fromList(rgbFloats),
-        [1, 3, scale, scale],
-      );
+  //   // Process each scale
+  //   for (final scale in scales) {
+  //     // Process the image at this scale
+  //     final resizedImage = await _resizeImage(originalImage, scale, scale);
+  //     final rgbFloats = await _imageToFloatTensor(resizedImage);
+  //     final inputTensor = OrtValueTensor.createTensorWithDataList(
+  //       Float32List.fromList(rgbFloats),
+  //       [1, 3, scale, scale],
+  //     );
 
-      final inputs = {'input.1': inputTensor};
-      final runOptions = OrtRunOptions();
-      final outputs = await _session!.runAsync(runOptions, inputs);
-      inputTensor.release();
-      runOptions.release();
+  //     final inputs = {'input.1': inputTensor};
+  //     final runOptions = OrtRunOptions();
+  //     final outputs = await _session!.runAsync(runOptions, inputs);
+  //     inputTensor.release();
+  //     runOptions.release();
 
-      // Process this scale's mask
-      final outputTensor = outputs?[0]?.value;
-      if (outputTensor is List) {
-        final mask = outputTensor[0][0];
-        final resizedMask = resizeMaskBilinear(mask, width, height);
+  //     // Process this scale's mask
+  //     final outputTensor = outputs?[0]?.value;
+  //     if (outputTensor is List) {
+  //       final mask = outputTensor[0][0];
+  //       final resizedMask = resizeMaskBilinear(mask, width, height);
 
-        // Add to combined mask
-        for (int y = 0; y < height; y++) {
-          for (int x = 0; x < width; x++) {
-            combinedMask[y][x] += resizedMask[y][x] / scales.length;
-          }
-        }
-      }
-    }
+  //       // Add to combined mask
+  //       for (int y = 0; y < height; y++) {
+  //         for (int x = 0; x < width; x++) {
+  //           combinedMask[y][x] += resizedMask[y][x] / scales.length;
+  //         }
+  //       }
+  //     }
+  //   }
 
-    // Apply the combined mask
-    return _applyMaskToOriginalSizeImage(originalImage, combinedMask,
-        threshold: threshold, smooth: smoothMask);
-  }
+  //   // Apply the combined mask
+  //   return _applyMaskToOriginalSizeImage(originalImage, combinedMask,
+  //       threshold: threshold, smooth: smoothMask);
+  // }
 
   /// Release resources
   void dispose() {
