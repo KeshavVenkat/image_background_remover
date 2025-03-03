@@ -129,7 +129,7 @@ class BackgroundRemover {
           : resizedMask;
 
       /// Apply the mask to the original image
-      return _applyMaskToOriginalSizeImage(originalImage, finalMask,
+      return await _applyMaskToOriginalSizeImage(originalImage, finalMask,
           threshold: threshold, smooth: smoothMask);
     } else {
       throw Exception('Unexpected output format from ONNX model.');
