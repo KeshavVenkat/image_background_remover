@@ -1,3 +1,10 @@
+## 0.0.7
+
+### Added
+- Implemented threshold-based segmentation to refine background removal.
+- Integrated a smooth edge method using bilinear interpolation and average neighboring to improve output quality  and reduce harsh edges.
+- Implemented edge enhancement for mask refinement using a Sobel-like gradient detection method.
+
 ## 0.0.6
 
 ### Feat
