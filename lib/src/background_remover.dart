@@ -23,6 +23,8 @@ class BackgroundRemover {
   final List<double> _mean = [0.485, 0.456, 0.406];
   final List<double> _std = [0.229, 0.224, 0.225];
 
+  int modelSize = 320;
+
   /// Initializes the ONNX environment and creates a session.
   ///
   /// This method should be called once before using the [removeBg] method.
@@ -69,7 +71,6 @@ class BackgroundRemover {
   /// returning a new image with the background removed.
   ///
   /// - [imageBytes]: The input image as a byte array.
-  /// - [modelSize]: The size for the model input (default: 320).
   /// - [threshold]: The threshold value for foreground/background separation (default: 0.5).
   /// - [smoothMask]: Whether to apply smoothing to the output mask (default: true).
   /// - Returns: A [ui.Image] with the background removed.
@@ -84,7 +85,6 @@ class BackgroundRemover {
   /// and complexity of the input image.
   Future<ui.Image> removeBg(
     Uint8List imageBytes, {
-    int modelSize = 320,
     double threshold = 0.5,
     bool smoothMask = true,
     bool enhanceEdges = true,
@@ -102,8 +102,7 @@ class BackgroundRemover {
     //     ? await _resizeImagePreserveAspect(originalImage, modelSize)
     //     : await _resizeImage(originalImage, modelSize, modelSize);
 
-    final resizedImage =
-        await _resizeImage(originalImage, modelSize, modelSize);
+    final resizedImage = await _resizeImage(originalImage, 320, modelSize);
 
     /// Convert the resized image into a tensor format required by the ONNX model.
     final rgbFloats = await _imageToFloatTensor(resizedImage);
@@ -158,43 +157,6 @@ class BackgroundRemover {
     final picture = recorder.endRecording();
     return picture.toImage(targetWidth, targetHeight);
   }
-
-  /// Resizes the image while preserving aspect ratio and padding to square.
-  // Future<ui.Image> _resizeImagePreserveAspect(
-  //     ui.Image image, int targetSize) async {
-  //   final double aspectRatio = image.width / image.height;
-  //   int newWidth, newHeight;
-
-  //   if (aspectRatio >= 1) {
-  //     // Landscape or square
-  //     newWidth = targetSize;
-  //     newHeight = (targetSize / aspectRatio).round();
-  //   } else {
-  //     // Portrait
-  //     newHeight = targetSize;
-  //     newWidth = (targetSize * aspectRatio).round();
-  //   }
-
-  //   // Create a square canvas with padding
-  //   final recorder = ui.PictureRecorder();
-  //   final canvas = Canvas(recorder);
-  //   canvas.drawColor(Colors.transparent, BlendMode.clear);
-
-  //   final paint = Paint()..filterQuality = FilterQuality.high;
-
-  //   // Center the image in the square
-  //   final xOffset = (targetSize - newWidth) / 2;
-  //   final yOffset = (targetSize - newHeight) / 2;
-
-  //   final srcRect =
-  //       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-  //   final dstRect = Rect.fromLTWH(
-  //       xOffset, yOffset, newWidth.toDouble(), newHeight.toDouble());
-  //   canvas.drawImageRect(image, srcRect, dstRect, paint);
-
-  //   final picture = recorder.endRecording();
-  //   return picture.toImage(targetSize, targetSize);
-  // }
 
   /// Resizes the mask using nearest neighbor interpolation.
   List resizeMaskNearest(List mask, int originalWidth, int originalHeight) {
