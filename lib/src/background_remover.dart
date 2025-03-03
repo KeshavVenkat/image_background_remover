@@ -97,11 +97,6 @@ class BackgroundRemover {
     final originalImage = await decodeImageFromList(imageBytes);
     log('Original image size: ${originalImage.width}x${originalImage.height}');
 
-    /// Resize the image based on the chosen method
-    // final resizedImage = preserveAspectRatio
-    //     ? await _resizeImagePreserveAspect(originalImage, modelSize)
-    //     : await _resizeImage(originalImage, modelSize, modelSize);
-
     final resizedImage = await _resizeImage(originalImage, 320, modelSize);
 
     /// Convert the resized image into a tensor format required by the ONNX model.
