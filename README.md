@@ -83,8 +83,8 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
 ## ⛔️ iOS Issue
 <details>
   <summary>Exception: ONNX session not initialized (iOS Release Mode & TestFlight)</summary>
-  ```
-  To resolve this issue, update the following settings in Xcode:
+  <br>
+  To resolve this issue, update the following settings in Xcode:<br>
 
   Open Xcode and navigate to:<br>
   Runner.xcodeproj → Targets → Runner → Build Settings<br><br>
