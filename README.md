@@ -86,12 +86,13 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
   ```
   To resolve this issue, update the following settings in Xcode:
 
-  Open Xcode and navigate to:
-  Runner.xcodeproj → Targets → Runner → Build Settings
+  Open Xcode and navigate to:<br>
+  Runner.xcodeproj → Targets → Runner → Build Settings<br><br>
 
-  Under the Deployment section:
-  Set "Strip Linked Product" to "No"
-  Set "Strip Style" to "Non-Global-Symbols"
+  Under the Deployment section:<br>
+  Set "Strip Linked Product" to "No"<br>
+  Set "Strip Style" to "Non-Global-Symbols"<br>
+
 
 </details>
 
