@@ -80,7 +80,7 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
 | `addBackground({required Uint8List image, required Color bgColor})` | Adds a background color to the given image. | `image` - The original image in byte array format. <br> `bgColor` - The background color to be applied. | `Future<Uint8List>` - The modified image with the background color applied. |
 
 
-##⛔️ iOS Issue
+## ⛔️ iOS Issue
 <details>
   <summary>Exception: ONNX session not initialized (iOS Release Mode & TestFlight)</summary>
   ```
@@ -92,7 +92,7 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
   Under the Deployment section:
   Set "Strip Linked Product" to "No"
   Set "Strip Style" to "Non-Global-Symbols"
-  ```
+
 </details>
 
 
