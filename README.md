@@ -80,6 +80,22 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
 | `addBackground({required Uint8List image, required Color bgColor})` | Adds a background color to the given image. | `image` - The original image in byte array format. <br> `bgColor` - The background color to be applied. | `Future<Uint8List>` - The modified image with the background color applied. |
 
 
+##⛔️ iOS Issue
+<details>
+  <summary>Exception: ONNX session not initialized (iOS Release Mode & TestFlight)</summary>
+  ```
+  To resolve this issue, update the following settings in Xcode:
+
+  Open Xcode and navigate to:
+  Runner.xcodeproj → Targets → Runner → Build Settings
+
+  Under the Deployment section:
+  Set "Strip Linked Product" to "No"
+  Set "Strip Style" to "Non-Global-Symbols"
+  ```
+</details>
+
+
 ## ⚠️ Warning
 
 This package uses an offline model to process images, which is bundled with the application. **This may increase the size of your app**. 
