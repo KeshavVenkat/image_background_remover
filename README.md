@@ -33,7 +33,7 @@ dependencies:
 ##  Usage
 # Initialization
 Before using the `removeBg` method, you must initialize the ONNX environment:
-    ```dart
+```dart
     import 'package:image_background_remover/image_background_remover.dart';
 
     @override
@@ -41,11 +41,12 @@ Before using the `removeBg` method, you must initialize the ONNX environment:
         super.initState();
         BackgroundRemover.instance.initializeOrt();
     }
+```
 
 
 # Remove Background
 To remove the background from an image:
-```dart
+``` dart
 import 'dart:typed_data';
 import 'package:image_background_remover/image_background_remover.dart';
 
@@ -84,6 +85,7 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
 <details>
   <summary>Exception: ONNX session not initialized (iOS Release Mode & TestFlight)</summary>
   <br>
+
   To resolve this issue, update the following settings in Xcode:<br>
 
   Open Xcode and navigate to:<br>
@@ -92,7 +94,6 @@ Uint8List modifiedImage = await BackgroundRemover.instance.addBackground(
   Under the Deployment section:<br>
   Set "Strip Linked Product" to "No"<br>
   Set "Strip Style" to "Non-Global-Symbols"<br>
-
 
 </details>
 
