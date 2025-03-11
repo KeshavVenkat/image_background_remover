@@ -1,5 +1,5 @@
 # Image Background Remover - Flutter
-## Overview
+## ⌗ Overview
 A Flutter package that removes the background from images using an ONNX model. The package provides a seamless way to perform image processing, leveraging the power of machine learning through ONNX Runtime. This package works completely offline without any external API dependencies
 
 ---
@@ -43,6 +43,15 @@ Before using the `removeBg` method, you must initialize the ONNX environment:
     }
 ```
 
+# Dispose
+Don't forget to dispose the onnx runtime session :
+```dart
+  @override
+  void dispose() {
+    BackgroundRemover.instance.dispose();
+    super.dispose();
+  }
+```
 
 # Remove Background
 To remove the background from an image:
