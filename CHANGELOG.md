@@ -1,3 +1,9 @@
+## 1.0.0
+
+### Fix
+- Minor Bug fix
+- Readme file updated
+
 ## 0.0.7
 
 ### Added
