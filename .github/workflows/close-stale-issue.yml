@@ -10,9 +10,9 @@ jobs:
       - name: Close stale issues
         uses: actions/stale@v8
         with:
-          days-before-stale: 30  
+          days-before-stale: 15  
           days-before-close: 7   
           stale-issue-label: "stale"
           stale-issue-message: "This issue has been marked as stale due to inactivity. If no further activity occurs, it will be closed in 7 days."
-          close-issue-message: "This issue has been closed due to inactivity. Please reopen if needed."
+          close-issue-message: "This issue has been closed due to inactivity. If you are still experiencing a similar issue, please open a issue, including the output of `flutter doctor -v` and a minimal reproduction of the issue."
           exempt-issue-labels: "important,bug" 
