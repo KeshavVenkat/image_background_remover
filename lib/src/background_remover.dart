@@ -83,7 +83,7 @@ class BackgroundRemover {
   ///
   /// Note: This function may take some time to process depending on the size
   /// and complexity of the input image.
-  Future<ui.Image> removeBg(
+  Future<Uint8List> removeBg(
     Uint8List imageBytes, {
     double threshold = 0.5,
     bool smoothMask = true,
@@ -129,8 +129,10 @@ class BackgroundRemover {
           : resizedMask;
 
       /// Apply the mask to the original image
-      return await _applyMaskToOriginalSizeImage(originalImage, finalMask,
+      var image =  await _applyMaskToOriginalSizeImage(originalImage, finalMask,
           threshold: threshold, smooth: smoothMask);
+      Uint8List imageList = await convertUiImageToPngBytes(image);
+      return imageList;
     } else {
       throw Exception('Unexpected output format from ONNX model.');
     }
@@ -409,4 +411,17 @@ class BackgroundRemover {
     _session?.release();
     _session = null;
   }
+
+  Future<ui.Image> decodeImageFromList(Uint8List bytes) async {
+    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+    final ui.Codec codec = await PaintingBinding.instance.instantiateImageCodecWithSize(buffer);
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+    return frameInfo.image;
+  }
+
+  Future<Uint8List> convertUiImageToPngBytes(ui.Image image) async {
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
 }
