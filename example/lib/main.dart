@@ -1,6 +1,8 @@
+import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:example/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_background_remover/image_background_remover.dart';
 
@@ -32,7 +34,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final ValueNotifier<ui.Image?> outImg = ValueNotifier<ui.Image?>(null);
+  final ValueNotifier<Uint8List?> outImg = ValueNotifier<Uint8List?>(null);
 
   @override
   void initState() {
@@ -81,61 +83,22 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           TextButton(
                             onPressed: () async {
-                              outImg.value = await BackgroundRemover.instance
-                                  .removeBg(image.readAsBytesSync());
+                              Uint8List bytes = await image.readAsBytes();
+                              outImg.value = await  BackgroundRemover.instance.removeBg(bytes);
                             },
                             child: const Text('Remove Background'),
                           ),
+
                           ValueListenableBuilder(
                             valueListenable: outImg,
                             builder: (context, img, _) {
                               return img == null
                                   ? const SizedBox()
-                                  : FutureBuilder(
-                                      future: img
-                                          .toByteData(
-                                              format: ui.ImageByteFormat.png)
-                                          .then((value) =>
-                                              value!.buffer.asUint8List()),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const CircularProgressIndicator();
-                                        } else if (snapshot.connectionState ==
-                                            ConnectionState.done) {
-                                          return Column(
-                                            children: [
-                                              Image.memory(snapshot.data!),
-                                              FutureBuilder(
-                                                  future: BackgroundRemover
-                                                      .instance
-                                                      .addBackground(
-                                                          image: snapshot.data!,
-                                                          bgColor:
-                                                              Colors.orange),
-                                                  builder: (context, snapshot) {
-                                                    if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState
-                                                            .waiting) {
-                                                      return const CircularProgressIndicator();
-                                                    } else if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done) {
-                                                      return Image.memory(
-                                                          snapshot.data!);
-                                                    } else {
-                                                      return const Text(
-                                                          'Error');
-                                                    }
-                                                  }),
-                                            ],
-                                          );
-                                        } else {
-                                          return const Text('Error');
-                                        }
-                                      },
-                                    );
+                                  : Column(
+                                children: [
+                                  Image.memory(img),
+                                ],
+                              );
                             },
                           ),
                         ],
@@ -146,5 +109,28 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
     );
+  }
+
+  Future<Uint8List?> removeBgInIsolate(Uint8List imageBytes) async {
+    final responsePort = ReceivePort();
+    await Isolate.spawn(_isolateEntry, [responsePort.sendPort, imageBytes]);
+    final result = await responsePort.first as Uint8List;
+    return result;
+  }
+
+  void _isolateEntry(List<dynamic> message) async {
+    final SendPort sendPort = message[0];
+    final Uint8List imageBytes = message[1];
+    debugPrint('_isolateEntry start');
+    try {
+      final Uint8List result =
+      await BackgroundRemover.instance.removeBg(imageBytes);
+      sendPort.send(result);
+      debugPrint('_isolateEntry result');
+    } catch (e) {
+      sendPort.send(null); // or handle error differently
+      debugPrint('_isolateEntry null');
+
+    }
   }
 }
