@@ -1,6 +1,8 @@
+import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:example/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_background_remover/image_background_remover.dart';
 
@@ -32,7 +34,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final ValueNotifier<ui.Image?> outImg = ValueNotifier<ui.Image?>(null);
+  final ValueNotifier<Uint8List?> outImg = ValueNotifier<Uint8List?>(null);
 
   @override
   void initState() {
@@ -83,37 +85,23 @@ class _MyHomePageState extends State<MyHomePage> {
                           TextButton(
                             onPressed: () async {
                               outImg.value = await BackgroundRemover.instance
-                                  .removeBGAddStroke(image: image.readAsBytesSync(), stokeColor: Colors.white, stokeWidth: 50.0);
+                                  .removeBg(image.readAsBytesSync());
                             },
                             child: const Text('Remove Background'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              outImg.value = await BackgroundRemover.instance
+                                  .removeBGAddStroke(image.readAsBytesSync(), stokeWidth: 30, stokeColor: Colors.black);
+                            },
+                            child: const Text('Remove Background With Stroke'),
                           ),
                           ValueListenableBuilder(
                             valueListenable: outImg,
                             builder: (context, img, _) {
                               return img == null
                                   ? const SizedBox()
-                                  : FutureBuilder(
-                                      future: img
-                                          .toByteData(
-                                              format: ui.ImageByteFormat.png)
-                                          .then((value) =>
-                                              value!.buffer.asUint8List()),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const CircularProgressIndicator();
-                                        } else if (snapshot.connectionState ==
-                                            ConnectionState.done) {
-                                          return Column(
-                                            children: [
-                                              Image.memory(snapshot.data!),
-                                            ],
-                                          );
-                                        } else {
-                                          return const Text('Error');
-                                        }
-                                      },
-                                    );
+                                  : Image.memory(img);
                             },
                           ),
                         ],
