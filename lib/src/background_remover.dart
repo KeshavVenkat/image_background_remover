@@ -398,7 +398,7 @@ class BackgroundRemover {
     final newImage =
         img.Image(width: decodedImage.width, height: decodedImage.height);
     img.fill(newImage,
-        color: img.ColorRgb8(bgColor.r.toInt(), bgColor.g.toInt(), bgColor.b.toInt()));
+        color: img.ColorRgb8(bgColor.red, bgColor.green, bgColor.blue));
     img.compositeImage(newImage, decodedImage);
     final jpegBytes = img.encodeJpg(newImage);
     final completer = Completer<Uint8List>();
@@ -458,9 +458,9 @@ class BackgroundRemover {
     }
 
     // Step 2: Write stroke directly to resultPixels buffer
-    final int r = borderColor.r.toInt();
-    final int g = borderColor.g.toInt();
-    final int b = borderColor.b.toInt();
+    final int r = borderColor.red;
+    final int g = borderColor.green;
+    final int b = borderColor.blue;
 
     final radius = borderWidth ~/ 2;
 
