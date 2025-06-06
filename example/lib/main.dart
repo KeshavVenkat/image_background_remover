@@ -89,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           TextButton(
                             onPressed: () async {
                               outImg.value = await BackgroundRemover.instance
-                                  .removeBGAddStroke(image.readAsBytesSync(), stokeWidth: 30, stokeColor: Colors.black);
+                                  .removeBGAddStroke(image.readAsBytesSync(), stokeWidth: 30, stokeColor: Colors.blue);
                             },
                             child: const Text('Remove Background With Stroke'),
                           ),
