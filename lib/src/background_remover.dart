@@ -83,7 +83,7 @@ class BackgroundRemover {
   ///
   /// Note: This function may take some time to process depending on the size
   /// and complexity of the input image.
-  Future<ui.Image> removeBg(
+  Future<Uint8List> removeBg(
     Uint8List imageBytes, {
     double threshold = 0.5,
     bool smoothMask = true,
@@ -129,8 +129,10 @@ class BackgroundRemover {
           : resizedMask;
 
       /// Apply the mask to the original image
-      return await _applyMaskToOriginalSizeImage(originalImage, finalMask,
+      var image = await _applyMaskToOriginalSizeImage(originalImage, finalMask,
           threshold: threshold, smooth: smoothMask);
+      Uint8List imageList = await convertUiImageToPngBytes(image);
+      return imageList;
     } else {
       throw Exception('Unexpected output format from ONNX model.');
     }
@@ -396,7 +398,7 @@ class BackgroundRemover {
     final newImage =
         img.Image(width: decodedImage.width, height: decodedImage.height);
     img.fill(newImage,
-        color: img.ColorRgb8(bgColor.red, bgColor.green, bgColor.blue));
+        color: img.ColorRgb8(bgColor.r.toInt(), bgColor.g.toInt(), bgColor.b.toInt()));
     img.compositeImage(newImage, decodedImage);
     final jpegBytes = img.encodeJpg(newImage);
     final completer = Completer<Uint8List>();
@@ -404,12 +406,15 @@ class BackgroundRemover {
     return completer.future;
   }
 
-  Future<ui.Image> removeBGAddStroke( {required Uint8List image, required Color stokeColor, required double stokeWidth}) async {
-    ui.Image bgRemoved = await removeBg(image);
-    ui.Image withStroke = await addStrokeToTransparentImage(image: bgRemoved, borderColor: stokeColor, borderWidth: stokeWidth);
-    return withStroke;
+  Future<Uint8List> removeBGAddStroke(Uint8List image,
+      {required Color stokeColor, required double stokeWidth}) async {
+    Uint8List bgRemoved = await removeBg(image);
+    ui.Image uiImage = await decodeImageFromList(bgRemoved);
+    ui.Image withStroke = await addStrokeToTransparentImage(
+        image: uiImage, borderColor: stokeColor, borderWidth: stokeWidth);
+    Uint8List strokeRemoved = await convertUiImageToPngBytes(withStroke);
+    return strokeRemoved;
   }
-
 
   Future<ui.Image> addStrokeToTransparentImage({
     required ui.Image image,
@@ -489,14 +494,24 @@ class BackgroundRemover {
     return completer.future;
   }
 
-
-
-
-
-
   /// Release resources
   void dispose() {
     _session?.release();
     _session = null;
+  }
+
+  Future<ui.Image> decodeImageFromList(Uint8List bytes) async {
+    final ui.ImmutableBuffer buffer =
+        await ui.ImmutableBuffer.fromUint8List(bytes);
+    final ui.Codec codec =
+        await PaintingBinding.instance.instantiateImageCodecWithSize(buffer);
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+    return frameInfo.image;
+  }
+
+  Future<Uint8List> convertUiImageToPngBytes(ui.Image image) async {
+    final ByteData? byteData =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 }
