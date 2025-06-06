@@ -83,7 +83,7 @@ class BackgroundRemover {
   ///
   /// Note: This function may take some time to process depending on the size
   /// and complexity of the input image.
-  Future<Uint8List> removeBg(
+  Future<ui.Image> removeBg(
     Uint8List imageBytes, {
     double threshold = 0.5,
     bool smoothMask = true,
@@ -129,10 +129,8 @@ class BackgroundRemover {
           : resizedMask;
 
       /// Apply the mask to the original image
-      var image =  await _applyMaskToOriginalSizeImage(originalImage, finalMask,
+      return await _applyMaskToOriginalSizeImage(originalImage, finalMask,
           threshold: threshold, smooth: smoothMask);
-      Uint8List imageList = await convertUiImageToPngBytes(image);
-      return imageList;
     } else {
       throw Exception('Unexpected output format from ONNX model.');
     }
@@ -406,22 +404,99 @@ class BackgroundRemover {
     return completer.future;
   }
 
+  Future<ui.Image> removeBGAddStroke( {required Uint8List image, required Color stokeColor, required double stokeWidth}) async {
+    ui.Image bgRemoved = await removeBg(image);
+    ui.Image withStroke = await addStrokeToTransparentImage(image: bgRemoved, borderColor: stokeColor, borderWidth: stokeWidth);
+    return withStroke;
+  }
+
+
+  Future<ui.Image> addStrokeToTransparentImage({
+    required ui.Image image,
+    required Color borderColor,
+    required double borderWidth,
+  }) async {
+    final width = image.width;
+    final height = image.height;
+
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (byteData == null) return image;
+    final pixels = byteData.buffer.asUint8List();
+
+    // Copy original image data to result buffer
+    final resultPixels = Uint8List.fromList(pixels);
+
+    final edgePoints = <Offset>[];
+
+    // Step 1: Detect edge pixels (fully opaque inside, transparent outside)
+    for (int y = 1; y < height - 1; y++) {
+      for (int x = 1; x < width - 1; x++) {
+        final i = (y * width + x) * 4;
+        final alpha = pixels[i + 3];
+        if (alpha < 10) continue;
+
+        bool isEdge = false;
+        for (int dy = -1; dy <= 1 && !isEdge; dy++) {
+          for (int dx = -1; dx <= 1 && !isEdge; dx++) {
+            if (dx == 0 && dy == 0) continue;
+            final ni = ((y + dy) * width + (x + dx)) * 4;
+            if (pixels[ni + 3] < 10) {
+              isEdge = true;
+            }
+          }
+        }
+
+        if (isEdge) {
+          edgePoints.add(Offset(x.toDouble(), y.toDouble()));
+        }
+      }
+    }
+
+    // Step 2: Write stroke directly to resultPixels buffer
+    final int r = borderColor.r.toInt();
+    final int g = borderColor.g.toInt();
+    final int b = borderColor.b.toInt();
+
+    final radius = borderWidth ~/ 2;
+
+    for (final point in edgePoints) {
+      for (int dy = -radius; dy <= radius; dy++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+          final x = point.dx.toInt() + dx;
+          final y = point.dy.toInt() + dy;
+
+          if (x < 0 || x >= width || y < 0 || y >= height) continue;
+          if (dx * dx + dy * dy > radius * radius) continue;
+
+          final i = (y * width + x) * 4;
+          resultPixels[i] = r;
+          resultPixels[i + 1] = g;
+          resultPixels[i + 2] = b;
+          resultPixels[i + 3] = 255; // force opaque stroke
+        }
+      }
+    }
+
+    // Step 3: Create new image from pixel buffer
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      resultPixels,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      completer.complete,
+    );
+    return completer.future;
+  }
+
+
+
+
+
+
   /// Release resources
   void dispose() {
     _session?.release();
     _session = null;
   }
-
-  Future<ui.Image> decodeImageFromList(Uint8List bytes) async {
-    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-    final ui.Codec codec = await PaintingBinding.instance.instantiateImageCodecWithSize(buffer);
-    final ui.FrameInfo frameInfo = await codec.getNextFrame();
-    return frameInfo.image;
-  }
-
-  Future<Uint8List> convertUiImageToPngBytes(ui.Image image) async {
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
-  }
-
 }
