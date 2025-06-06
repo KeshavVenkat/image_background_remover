@@ -49,6 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5FEFF),
       appBar: AppBar(
         title: const Text('Background Remover'),
       ),
@@ -82,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           TextButton(
                             onPressed: () async {
                               outImg.value = await BackgroundRemover.instance
-                                  .removeBg(image.readAsBytesSync());
+                                  .removeBGAddStroke(image: image.readAsBytesSync(), stokeColor: Colors.white, stokeWidth: 50.0);
                             },
                             child: const Text('Remove Background'),
                           ),
@@ -106,29 +107,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                           return Column(
                                             children: [
                                               Image.memory(snapshot.data!),
-                                              FutureBuilder(
-                                                  future: BackgroundRemover
-                                                      .instance
-                                                      .addBackground(
-                                                          image: snapshot.data!,
-                                                          bgColor:
-                                                              Colors.orange),
-                                                  builder: (context, snapshot) {
-                                                    if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState
-                                                            .waiting) {
-                                                      return const CircularProgressIndicator();
-                                                    } else if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done) {
-                                                      return Image.memory(
-                                                          snapshot.data!);
-                                                    } else {
-                                                      return const Text(
-                                                          'Error');
-                                                    }
-                                                  }),
                                             ],
                                           );
                                         } else {
