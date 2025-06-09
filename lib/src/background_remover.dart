@@ -410,16 +410,26 @@ class BackgroundRemover {
       {required Color stokeColor, required double stokeWidth}) async {
     Uint8List bgRemoved = await removeBg(image);
     ui.Image uiImage = await decodeImageFromList(bgRemoved);
-    ui.Image withStroke = await addStrokeToTransparentImage(
-        image: uiImage, borderColor: stokeColor, borderWidth: stokeWidth);
-    Uint8List strokeRemoved = await convertUiImageToPngBytes(withStroke);
-    return strokeRemoved;
+
+    // Add dual stroke: outer black stroke (6px) + inner colored stroke (30px)
+    ui.Image withDualStroke = await addDualStrokeToTransparentImage(
+      image: uiImage,
+      innerBorderColor: stokeColor,
+      innerBorderWidth: stokeWidth,
+      outerBorderColor: Colors.black.withValues(alpha: 0.2),
+      outerBorderWidth: 6.0,
+    );
+
+    Uint8List strokeAdded = await convertUiImageToPngBytes(withDualStroke);
+    return strokeAdded;
   }
 
-  Future<ui.Image> addStrokeToTransparentImage({
+  Future<ui.Image> addDualStrokeToTransparentImage({
     required ui.Image image,
-    required Color borderColor,
-    required double borderWidth,
+    required Color innerBorderColor,
+    required double innerBorderWidth,
+    required Color outerBorderColor,
+    required double outerBorderWidth,
   }) async {
     final width = image.width;
     final height = image.height;
@@ -433,20 +443,39 @@ class BackgroundRemover {
 
     final edgePoints = <Offset>[];
 
-    // Step 1: Detect edge pixels (fully opaque inside, transparent outside)
-    for (int y = 1; y < height - 1; y++) {
-      for (int x = 1; x < width - 1; x++) {
+    // Step 1: Detect edge pixels (including boundary edges)
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
         final i = (y * width + x) * 4;
         final alpha = pixels[i + 3];
+
+        // Skip fully transparent pixels
         if (alpha < 10) continue;
 
         bool isEdge = false;
-        for (int dy = -1; dy <= 1 && !isEdge; dy++) {
-          for (int dx = -1; dx <= 1 && !isEdge; dx++) {
-            if (dx == 0 && dy == 0) continue;
-            final ni = ((y + dy) * width + (x + dx)) * 4;
-            if (pixels[ni + 3] < 10) {
-              isEdge = true;
+
+        // Check if pixel is at image boundary
+        if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
+          isEdge = true;
+        } else {
+          // Check neighboring pixels for transparency
+          for (int dy = -1; dy <= 1 && !isEdge; dy++) {
+            for (int dx = -1; dx <= 1 && !isEdge; dx++) {
+              if (dx == 0 && dy == 0) continue;
+
+              final nx = x + dx;
+              final ny = y + dy;
+
+              // Check bounds
+              if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+                // Treat out-of-bounds as transparent
+                isEdge = true;
+              } else {
+                final ni = (ny * width + nx) * 4;
+                if (pixels[ni + 3] < 10) {
+                  isEdge = true;
+                }
+              }
             }
           }
         }
@@ -457,32 +486,60 @@ class BackgroundRemover {
       }
     }
 
-    // Step 2: Write stroke directly to resultPixels buffer
-    final int r = borderColor.red;
-    final int g = borderColor.green;
-    final int b = borderColor.blue;
-
-    final radius = borderWidth ~/ 2;
+    // Step 2: Apply outer stroke first (black with opacity)
+    final outerRadius = (innerBorderWidth + outerBorderWidth) ~/ 2;
+    final outerR = outerBorderColor.red;
+    final outerG = outerBorderColor.green;
+    final outerB = outerBorderColor.blue;
+    final outerA = (outerBorderColor.opacity * 255).round();
 
     for (final point in edgePoints) {
-      for (int dy = -radius; dy <= radius; dy++) {
-        for (int dx = -radius; dx <= radius; dx++) {
+      for (int dy = -outerRadius; dy <= outerRadius + 2; dy++) {
+        for (int dx = -outerRadius; dx <= outerRadius; dx++) {
           final x = point.dx.toInt() + dx;
           final y = point.dy.toInt() + dy;
 
           if (x < 0 || x >= width || y < 0 || y >= height) continue;
-          if (dx * dx + dy * dy > radius * radius) continue;
+          if (dx * dx + dy * dy > outerRadius * outerRadius) continue;
 
           final i = (y * width + x) * 4;
-          resultPixels[i] = r;
-          resultPixels[i + 1] = g;
-          resultPixels[i + 2] = b;
-          resultPixels[i + 3] = 255; // force opaque stroke
+
+          // Only apply outer stroke if the pixel is currently transparent or has lower alpha
+          if (resultPixels[i + 3] < outerA) {
+            resultPixels[i] = outerR;
+            resultPixels[i + 1] = outerG;
+            resultPixels[i + 2] = outerB;
+            resultPixels[i + 3] = outerA;
+          }
         }
       }
     }
 
-    // Step 3: Create new image from pixel buffer
+    // Step 3: Apply inner stroke (colored stroke)
+    final innerRadius = innerBorderWidth ~/ 2;
+    final innerR = innerBorderColor.red;
+    final innerG = innerBorderColor.green;
+    final innerB = innerBorderColor.blue;
+
+    for (final point in edgePoints) {
+      for (int dy = -innerRadius; dy <= innerRadius + 2; dy++) {
+        for (int dx = -innerRadius; dx <= innerRadius; dx++) {
+          final x = point.dx.toInt() + dx;
+          final y = point.dy.toInt() + dy;
+
+          if (x < 0 || x >= width || y < 0 || y >= height) continue;
+          if (dx * dx + dy * dy > innerRadius * innerRadius) continue;
+
+          final i = (y * width + x) * 4;
+          resultPixels[i] = innerR;
+          resultPixels[i + 1] = innerG;
+          resultPixels[i + 2] = innerB;
+          resultPixels[i + 3] = 255; // force opaque inner stroke
+        }
+      }
+    }
+
+    // Step 4: Create new image from pixel buffer
     final completer = Completer<ui.Image>();
     ui.decodeImageFromPixels(
       resultPixels,
