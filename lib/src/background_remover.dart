@@ -407,7 +407,7 @@ class BackgroundRemover {
   }
 
   Future<Uint8List> removeBGAddStroke(Uint8List image,
-      {required Color stokeColor, required double stokeWidth}) async {
+      {required Color stokeColor, Color secondaryStokeColor = Colors.black, required double stokeWidth, double secondaryStrokeWidth = 6.0}) async {
     Uint8List bgRemoved = await removeBg(image);
     ui.Image uiImage = await decodeImageFromList(bgRemoved);
 
@@ -418,8 +418,8 @@ class BackgroundRemover {
       image: paddedImage,
       innerBorderColor: stokeColor,
       innerBorderWidth: stokeWidth,
-      outerBorderColor: Colors.black.withValues(alpha: 0.2),
-      outerBorderWidth: 6.0,
+      outerBorderColor: secondaryStokeColor.withValues(alpha: 0.2),
+      outerBorderWidth: secondaryStrokeWidth,
     );
 
     Uint8List strokeAdded = await convertUiImageToPngBytes(withDualStroke);
