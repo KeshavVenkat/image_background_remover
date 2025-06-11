@@ -407,22 +407,40 @@ class BackgroundRemover {
   }
 
   Future<Uint8List> removeBGAddStroke(Uint8List image,
-      {required Color stokeColor, required double stokeWidth}) async {
+      {required Color stokeColor, Color secondaryStokeColor = Colors.black, required double stokeWidth, double secondaryStrokeWidth = 6.0}) async {
     Uint8List bgRemoved = await removeBg(image);
     ui.Image uiImage = await decodeImageFromList(bgRemoved);
 
-    // Add dual stroke: outer black stroke (6px) + inner colored stroke (30px)
+    // Pad the image so the stroke has space to render
+    final paddedImage = await padImageWithTransparentBorder(uiImage, 20);
+
     ui.Image withDualStroke = await addDualStrokeToTransparentImage(
-      image: uiImage,
+      image: paddedImage,
       innerBorderColor: stokeColor,
       innerBorderWidth: stokeWidth,
-      outerBorderColor: Colors.black.withValues(alpha: 0.2),
-      outerBorderWidth: 6.0,
+      outerBorderColor: secondaryStokeColor.withValues(alpha: 0.2),
+      outerBorderWidth: secondaryStrokeWidth,
     );
 
     Uint8List strokeAdded = await convertUiImageToPngBytes(withDualStroke);
     return strokeAdded;
   }
+
+
+  Future<ui.Image> padImageWithTransparentBorder(ui.Image image, int padding) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final newWidth = image.width + 2 * padding;
+    final newHeight = image.height + 2 * padding;
+
+    final paint = Paint();
+    canvas.drawImage(image, Offset(padding.toDouble(), padding.toDouble()), paint);
+
+    final picture = recorder.endRecording();
+    return await picture.toImage(newWidth, newHeight);
+  }
+
 
   Future<ui.Image> addDualStrokeToTransparentImage({
     required ui.Image image,
@@ -440,35 +458,27 @@ class BackgroundRemover {
 
     // Copy original image data to result buffer
     final resultPixels = Uint8List.fromList(pixels);
-
     final edgePoints = <Offset>[];
 
-    // Step 1: Detect edge pixels (including boundary edges)
+    // Step 1: Detect edge pixels
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         final i = (y * width + x) * 4;
         final alpha = pixels[i + 3];
-
-        // Skip fully transparent pixels
         if (alpha < 10) continue;
 
         bool isEdge = false;
 
-        // Check if pixel is at image boundary
         if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
           isEdge = true;
         } else {
-          // Check neighboring pixels for transparency
           for (int dy = -1; dy <= 1 && !isEdge; dy++) {
             for (int dx = -1; dx <= 1 && !isEdge; dx++) {
               if (dx == 0 && dy == 0) continue;
 
               final nx = x + dx;
               final ny = y + dy;
-
-              // Check bounds
               if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-                // Treat out-of-bounds as transparent
                 isEdge = true;
               } else {
                 final ni = (ny * width + nx) * 4;
@@ -486,25 +496,30 @@ class BackgroundRemover {
       }
     }
 
-    // Step 2: Apply outer stroke first (black with opacity)
-    final outerRadius = (innerBorderWidth + outerBorderWidth) ~/ 2;
+    // ✅ Ensure bottom edge pixels are also counted
+    for (int x = 0; x < width; x++) {
+      final i = ((height - 1) * width + x) * 4;
+      if (pixels[i + 3] >= 10) {
+        edgePoints.add(Offset(x.toDouble(), (height - 1).toDouble()));
+      }
+    }
+
+    // Step 2: Apply outer stroke
+    final outerRadius = (innerBorderWidth + outerBorderWidth).round();
     final outerR = outerBorderColor.red;
     final outerG = outerBorderColor.green;
     final outerB = outerBorderColor.blue;
     final outerA = (outerBorderColor.opacity * 255).round();
 
     for (final point in edgePoints) {
-      for (int dy = -outerRadius; dy <= outerRadius + 2; dy++) {
+      for (int dy = -outerRadius; dy <= outerRadius; dy++) {
         for (int dx = -outerRadius; dx <= outerRadius; dx++) {
           final x = point.dx.toInt() + dx;
           final y = point.dy.toInt() + dy;
-
           if (x < 0 || x >= width || y < 0 || y >= height) continue;
           if (dx * dx + dy * dy > outerRadius * outerRadius) continue;
 
           final i = (y * width + x) * 4;
-
-          // Only apply outer stroke if the pixel is currently transparent or has lower alpha
           if (resultPixels[i + 3] < outerA) {
             resultPixels[i] = outerR;
             resultPixels[i + 1] = outerG;
@@ -515,18 +530,17 @@ class BackgroundRemover {
       }
     }
 
-    // Step 3: Apply inner stroke (colored stroke)
-    final innerRadius = innerBorderWidth ~/ 2;
+    // Step 3: Apply inner stroke
+    final innerRadius = innerBorderWidth.round();
     final innerR = innerBorderColor.red;
     final innerG = innerBorderColor.green;
     final innerB = innerBorderColor.blue;
 
     for (final point in edgePoints) {
-      for (int dy = -innerRadius; dy <= innerRadius + 2; dy++) {
+      for (int dy = -innerRadius; dy <= innerRadius; dy++) {
         for (int dx = -innerRadius; dx <= innerRadius; dx++) {
           final x = point.dx.toInt() + dx;
           final y = point.dy.toInt() + dy;
-
           if (x < 0 || x >= width || y < 0 || y >= height) continue;
           if (dx * dx + dy * dy > innerRadius * innerRadius) continue;
 
@@ -534,12 +548,12 @@ class BackgroundRemover {
           resultPixels[i] = innerR;
           resultPixels[i + 1] = innerG;
           resultPixels[i + 2] = innerB;
-          resultPixels[i + 3] = 255; // force opaque inner stroke
+          resultPixels[i + 3] = 255; // solid inner stroke
         }
       }
     }
 
-    // Step 4: Create new image from pixel buffer
+    // Step 4: Create ui.Image from modified pixels
     final completer = Completer<ui.Image>();
     ui.decodeImageFromPixels(
       resultPixels,
@@ -550,6 +564,7 @@ class BackgroundRemover {
     );
     return completer.future;
   }
+
 
   /// Release resources
   void dispose() {
