@@ -48,7 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5FEFF),
+      backgroundColor: const Color(0xFFEEFDFF),
       appBar: AppBar(
         title: const Text('Background Remover'),
       ),
