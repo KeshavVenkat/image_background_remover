@@ -52,61 +52,63 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: const Text('Background Remover'),
       ),
-      body: ValueListenableBuilder(
-        valueListenable: ImagePickerService.pickedFile,
-        builder: (context, image, _) {
-          return GestureDetector(
-            onTap: () async {
-              await ImagePickerService.pickImage();
-            },
-            child: Container(
-              alignment: Alignment.center,
-              child: image == null
-                  ? const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image,
-                          size: 100,
-                        ),
-                        Text('No image selected.'),
-                      ],
-                    )
-                  : SingleChildScrollView(
-                      child: Column(
+      body: SafeArea(
+        child: ValueListenableBuilder(
+          valueListenable: ImagePickerService.pickedFile,
+          builder: (context, image, _) {
+            return GestureDetector(
+              onTap: () async {
+                await ImagePickerService.pickImage();
+              },
+              child: Container(
+                alignment: Alignment.center,
+                child: image == null
+                    ? const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.file(image),
-                          const SizedBox(
-                            height: 20,
+                          Icon(
+                            Icons.image,
+                            size: 100,
                           ),
-                          TextButton(
-                            onPressed: () async {
-                              outImg.value = await BackgroundRemover.instance
-                                  .removeBg(image.readAsBytesSync());
-                            },
-                            child: const Text('Remove Background'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              outImg.value = await BackgroundRemover.instance
-                                  .removeBGAddStroke(image.readAsBytesSync(), stokeWidth: 30, stokeColor: Colors.blue);
-                            },
-                            child: const Text('Remove Background With Stroke'),
-                          ),
-                          ValueListenableBuilder(
-                            valueListenable: outImg,
-                            builder: (context, img, _) {
-                              return img == null
-                                  ? const SizedBox()
-                                  : Image.memory(img);
-                            },
-                          ),
+                          Text('No image selected.'),
                         ],
+                      )
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            Image.file(image),
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                outImg.value = await BackgroundRemover.instance
+                                    .removeBg(image.readAsBytesSync());
+                              },
+                              child: const Text('Remove Background'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                outImg.value = await BackgroundRemover.instance
+                                    .removeBGAddStroke(image.readAsBytesSync(), stokeWidth: 5, stokeColor: Colors.blue, secondaryStrokeWidth: 5);
+                              },
+                              child: const Text('Remove Background With Stroke'),
+                            ),
+                            ValueListenableBuilder(
+                              valueListenable: outImg,
+                              builder: (context, img, _) {
+                                return img == null
+                                    ? const SizedBox()
+                                    : Image.memory(img);
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-            ),
-          );
-        },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
