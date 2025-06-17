@@ -460,31 +460,33 @@ class BackgroundRemover {
     final resultPixels = Uint8List.fromList(pixels);
     final edgePoints = <Offset>[];
 
-    // Step 1: Detect edge pixels
+    // Step 1: Detect edge pixels (pixels that are opaque but have transparent neighbors)
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         final i = (y * width + x) * 4;
         final alpha = pixels[i + 3];
-        if (alpha < 10) continue;
+
+        // Skip transparent pixels
+        if (alpha < 128) continue;
 
         bool isEdge = false;
 
-        if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
-          isEdge = true;
-        } else {
-          for (int dy = -1; dy <= 1 && !isEdge; dy++) {
-            for (int dx = -1; dx <= 1 && !isEdge; dx++) {
-              if (dx == 0 && dy == 0) continue;
+        // Check if this opaque pixel has any transparent neighbors
+        for (int dy = -1; dy <= 1 && !isEdge; dy++) {
+          for (int dx = -1; dx <= 1 && !isEdge; dx++) {
+            if (dx == 0 && dy == 0) continue;
 
-              final nx = x + dx;
-              final ny = y + dy;
-              if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+            final nx = x + dx;
+            final ny = y + dy;
+
+            // Consider boundary pixels as edges
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+              isEdge = true;
+            } else {
+              final ni = (ny * width + nx) * 4;
+              // If neighbor is transparent, this is an edge pixel
+              if (pixels[ni + 3] < 128) {
                 isEdge = true;
-              } else {
-                final ni = (ny * width + nx) * 4;
-                if (pixels[ni + 3] < 10) {
-                  isEdge = true;
-                }
               }
             }
           }
@@ -496,15 +498,7 @@ class BackgroundRemover {
       }
     }
 
-    // ✅ Ensure bottom edge pixels are also counted
-    for (int x = 0; x < width; x++) {
-      final i = ((height - 1) * width + x) * 4;
-      if (pixels[i + 3] >= 10) {
-        edgePoints.add(Offset(x.toDouble(), (height - 1).toDouble()));
-      }
-    }
-
-    // Step 2: Apply outer stroke
+    // Step 2: Apply outer stroke (only to transparent areas near edges)
     final outerRadius = (innerBorderWidth + outerBorderWidth).round();
     final outerR = outerBorderColor.red;
     final outerG = outerBorderColor.green;
@@ -517,10 +511,14 @@ class BackgroundRemover {
           final x = point.dx.toInt() + dx;
           final y = point.dy.toInt() + dy;
           if (x < 0 || x >= width || y < 0 || y >= height) continue;
-          if (dx * dx + dy * dy > outerRadius * outerRadius) continue;
+
+          final distance = dx * dx + dy * dy;
+          if (distance > outerRadius * outerRadius) continue;
 
           final i = (y * width + x) * 4;
-          if (resultPixels[i + 3] < outerA) {
+
+          // Only apply outer stroke to transparent areas
+          if (pixels[i + 3] < 128 && resultPixels[i + 3] < outerA) {
             resultPixels[i] = outerR;
             resultPixels[i + 1] = outerG;
             resultPixels[i + 2] = outerB;
@@ -530,7 +528,7 @@ class BackgroundRemover {
       }
     }
 
-    // Step 3: Apply inner stroke
+    // Step 3: Apply inner stroke (only to transparent areas near edges, closer to the object)
     final innerRadius = innerBorderWidth.round();
     final innerR = innerBorderColor.red;
     final innerG = innerBorderColor.green;
@@ -542,13 +540,19 @@ class BackgroundRemover {
           final x = point.dx.toInt() + dx;
           final y = point.dy.toInt() + dy;
           if (x < 0 || x >= width || y < 0 || y >= height) continue;
-          if (dx * dx + dy * dy > innerRadius * innerRadius) continue;
+
+          final distance = dx * dx + dy * dy;
+          if (distance > innerRadius * innerRadius) continue;
 
           final i = (y * width + x) * 4;
-          resultPixels[i] = innerR;
-          resultPixels[i + 1] = innerG;
-          resultPixels[i + 2] = innerB;
-          resultPixels[i + 3] = 255; // solid inner stroke
+
+          // Only apply inner stroke to transparent areas
+          if (pixels[i + 3] < 128) {
+            resultPixels[i] = innerR;
+            resultPixels[i + 1] = innerG;
+            resultPixels[i + 2] = innerB;
+            resultPixels[i + 3] = 255; // solid inner stroke
+          }
         }
       }
     }
