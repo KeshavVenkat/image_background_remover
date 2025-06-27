@@ -426,6 +426,83 @@ class BackgroundRemover {
     return strokeAdded;
   }
 
+  Future<Uint8List> removeBGScaleAndAddStroke(
+      Uint8List inputImageBytes, {
+        required double targetWidthMM,
+        required double targetHeightMM,
+        required Color strokeColor,
+        Color secondaryStrokeColor = Colors.black,
+        double strokeWidthMM = 2.0,
+        double secondaryStrokeWidthMM = 0.0, // Optional
+        double dpi = 300,
+      }) async {
+    // 1. Convert mm to px
+    final targetWidthPx = ((targetWidthMM / 25.4) * dpi).round();
+    final targetHeightPx = ((targetHeightMM / 25.4) * dpi).round();
+    final strokePx = ((strokeWidthMM / 25.4) * dpi).round();
+    final secondaryStrokePx = ((secondaryStrokeWidthMM / 25.4) * dpi).round();
+
+    // 2. Remove background
+    final bgRemoved = await removeBg(inputImageBytes);
+    final image = img.decodeImage(bgRemoved)!;
+
+    // 3. Maintain aspect ratio
+    final srcWidth = image.width;
+    final srcHeight = image.height;
+    final srcAspectRatio = srcWidth / srcHeight;
+    final targetAspectRatio = targetWidthPx / targetHeightPx;
+
+    int resizedWidth, resizedHeight;
+    if (srcAspectRatio > targetAspectRatio) {
+      // Image is wider than target area
+      resizedWidth = targetWidthPx;
+      resizedHeight = (targetWidthPx / srcAspectRatio).round();
+    } else {
+      // Image is taller than target area
+      resizedHeight = targetHeightPx;
+      resizedWidth = (targetHeightPx * srcAspectRatio).round();
+    }
+
+    final resized = img.copyResize(
+      image,
+      width: resizedWidth,
+      height: resizedHeight,
+      interpolation: img.Interpolation.linear,
+    );
+
+    // 4. Convert to ui.Image
+    final uiImage = await convertImageToUiImage(resized);
+
+    // 5. Pad to ensure space for stroke
+    final padded = await padImageWithTransparentBorder(
+      uiImage,
+      strokePx + secondaryStrokePx + 10,
+    );
+
+    // 6. Add stroke
+    final finalImage = await addDualStrokeToTransparentImage(
+      image: padded,
+      innerBorderColor: strokeColor,
+      innerBorderWidth: strokePx.toDouble(),
+      outerBorderColor: secondaryStrokeColor.withOpacity(0.2),
+      outerBorderWidth: secondaryStrokePx.toDouble(),
+    );
+
+    // 7. Encode final image
+    final png = await convertUiImageToPngBytes(finalImage);
+    return png;
+  }
+
+
+  Future<ui.Image> convertImageToUiImage(img.Image image) async {
+    final completer = Completer<ui.Image>();
+    final bytes = Uint8List.fromList(img.encodePng(image));
+    ui.decodeImageFromList(bytes, (ui.Image img) => completer.complete(img));
+    return completer.future;
+  }
+
+
+
 
   Future<ui.Image> padImageWithTransparentBorder(ui.Image image, int padding) async {
     final recorder = ui.PictureRecorder();
