@@ -93,6 +93,8 @@ class BackgroundRemover {
       throw Exception("ONNX session not initialized");
     }
 
+    final ui.Image result;
+
     /// Decode the input image
     final originalImage = await decodeImageFromList(imageBytes);
     log('Original image size: ${originalImage.width}x${originalImage.height}');
@@ -129,9 +131,18 @@ class BackgroundRemover {
           : resizedMask;
 
       /// Apply the mask to the original image
-      var image = await _applyMaskToOriginalSizeImage(originalImage, finalMask,
+      result = await _applyMaskToOriginalSizeImage(originalImage, finalMask,
           threshold: threshold, smooth: smoothMask);
-      Uint8List imageList = await convertUiImageToPngBytes(image);
+      Uint8List imageList = await convertUiImageToPngBytes(result);
+
+      /// Release the ONNX session resources
+      outputs?.forEach((output) {
+        output?.release();
+      });
+
+      originalImage.dispose();
+      resizedImage.dispose();
+      result.dispose();
       return imageList;
     } else {
       throw Exception('Unexpected output format from ONNX model.');
@@ -651,6 +662,7 @@ class BackgroundRemover {
   void dispose() {
     _session?.release();
     _session = null;
+    OrtEnv.instance.release();
   }
 
   Future<ui.Image> decodeImageFromList(Uint8List bytes) async {
